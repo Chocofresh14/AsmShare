@@ -14,6 +14,7 @@ SYS_FORK        equ 57
 SYS_EXIT        equ 60
 SYS_CHROOT      equ 161
 SYS_GETDENTS64  equ 217
+STDOUT		equ 1
 
 AF_INET         equ 2
 SOCK_STREAM     equ 1

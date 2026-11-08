@@ -19,4 +19,12 @@ clean:
 run: all
 	./$(TARGET)
 
-.PHONY: all clean run
+.PHONY: all clean run test
+
+
+build/test_utils.o: tests/test_utils.asm include/syscalls.inc | build
+	nasm -f elf64 -I . -o $@ $<
+
+test: build/utils.o build/test_utils.o
+	ld -o build/test_utils build/utils.o build/test_utils.o
+	./build/test_utils
