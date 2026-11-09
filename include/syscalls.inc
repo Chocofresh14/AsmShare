@@ -25,3 +25,12 @@ PORT_NETWORK    equ 0x901F
 BACKLOG         equ 16
 REQUEST_SIZE    equ 4096
 PATH_SIZE       equ 1024
+
+FILE_PATH_SIZE  equ 1040
+
+O_RDONLY        equ 0
+S_IFMT          equ 0xF000
+S_IFREG         equ 0x8000
+STAT_BUFFER_SIZE equ 144
+STAT_MODE_OFFSET equ 24
+STAT_SIZE_OFFSET equ 48

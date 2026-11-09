@@ -1,10 +1,10 @@
 %include "include/syscalls.inc"
 
-extern strlen
 extern parse_request
-extern path_buffer
+extern send_file
 
 global _start
+global client_fd
 
 section .data
 reuse_value dd 1
@@ -15,14 +15,6 @@ sockaddr:
     dd 0
     dq 0
 sockaddr_len equ $ - sockaddr
-
-answer_header:
-    db "HTTP/1.0 200 OK", 13, 10
-    db "Content-Type: text/plain", 13, 10
-    db "Connection: close", 13, 10
-    db 13, 10, 0
-answer_prefix   db "Path: ", 0
-answer_newline  db 10, 0
 
 section .bss
 server_fd       resq 1
@@ -44,7 +36,7 @@ accept_loop:
     call parse_request
     test rax, rax
     jnz skip_answer
-    call send_path_answer
+    call send_file
 skip_answer:
     call close_client
     jmp accept_loop
@@ -103,26 +95,6 @@ read_request:
     xor rax, rax
 read_request_ok:
     mov byte [request_buffer + rax], 0
-    ret
-
-send_path_answer:
-    mov rdi, answer_header
-    call send_string
-    mov rdi, answer_prefix
-    call send_string
-    mov rdi, path_buffer
-    call send_string
-    mov rdi, answer_newline
-    call send_string
-    ret
-
-send_string:
-    mov rsi, rdi
-    call strlen
-    mov rdx, rax
-    mov rax, SYS_WRITE
-    mov rdi, [client_fd]
-    syscall
     ret
 
 close_client:
