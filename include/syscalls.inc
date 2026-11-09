@@ -24,3 +24,4 @@ SO_REUSEADDR    equ 2
 PORT_NETWORK    equ 0x901F
 BACKLOG         equ 16
 REQUEST_SIZE    equ 4096
+PATH_SIZE       equ 1024

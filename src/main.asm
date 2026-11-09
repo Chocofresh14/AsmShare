@@ -1,5 +1,9 @@
 %include "include/syscalls.inc"
 
+extern strlen
+extern parse_request
+extern path_buffer
+
 global _start
 
 section .data
@@ -12,14 +16,13 @@ sockaddr:
     dq 0
 sockaddr_len equ $ - sockaddr
 
-hello_response:
+answer_header:
     db "HTTP/1.0 200 OK", 13, 10
     db "Content-Type: text/plain", 13, 10
-    db "Content-Length: 6", 13, 10
     db "Connection: close", 13, 10
-    db 13, 10
-    db "Hello", 10
-hello_response_len equ $ - hello_response
+    db 13, 10, 0
+answer_prefix   db "Path: ", 0
+answer_newline  db 10, 0
 
 section .bss
 server_fd       resq 1
@@ -37,7 +40,12 @@ _start:
 accept_loop:
     call accept_client
     call read_request
-    call send_hello
+    mov rdi, request_buffer
+    call parse_request
+    test rax, rax
+    jnz skip_answer
+    call send_path_answer
+skip_answer:
     call close_client
     jmp accept_loop
 
@@ -88,15 +96,32 @@ read_request:
     mov rax, SYS_READ
     mov rdi, [client_fd]
     mov rsi, request_buffer
-    mov rdx, REQUEST_SIZE
+    mov rdx, REQUEST_SIZE - 1
     syscall
+    test rax, rax
+    jg read_request_ok
+    xor rax, rax
+read_request_ok:
+    mov byte [request_buffer + rax], 0
     ret
 
-send_hello:
+send_path_answer:
+    mov rdi, answer_header
+    call send_string
+    mov rdi, answer_prefix
+    call send_string
+    mov rdi, path_buffer
+    call send_string
+    mov rdi, answer_newline
+    call send_string
+    ret
+
+send_string:
+    mov rsi, rdi
+    call strlen
+    mov rdx, rax
     mov rax, SYS_WRITE
     mov rdi, [client_fd]
-    mov rsi, hello_response
-    mov rdx, hello_response_len
     syscall
     ret
 
