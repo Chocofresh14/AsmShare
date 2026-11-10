@@ -3,6 +3,7 @@
 extern strlen
 extern memcpy
 extern itoa
+extern send_listing
 extern path_buffer
 extern client_fd
 
@@ -40,11 +41,19 @@ send_file:
     call get_file_info
     test rax, rax
     jnz send_file_close
-    call check_regular_file
-    test rax, rax
-    jnz send_file_close
+    call get_file_type
+    cmp eax, S_IFREG
+    je send_file_regular
+    cmp eax, S_IFDIR
+    je send_file_directory
+    jmp send_file_close
+send_file_regular:
     call send_headers
     call send_body
+    jmp send_file_close
+send_file_directory:
+    mov rdi, [file_fd]
+    call send_listing
 send_file_close:
     call close_file
 send_file_done:
@@ -78,15 +87,9 @@ get_file_info:
     syscall
     ret
 
-check_regular_file:
+get_file_type:
     mov eax, [stat_buffer + STAT_MODE_OFFSET]
     and eax, S_IFMT
-    cmp eax, S_IFREG
-    jne check_regular_file_bad
-    xor rax, rax
-    ret
-check_regular_file_bad:
-    mov rax, 1
     ret
 
 send_headers:
