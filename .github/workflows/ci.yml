@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install NASM
+        run: sudo apt update && sudo apt install -y nasm
+
+      - name: Build
+        run: make
+
+      - name: Unit tests
+        run: make test
+
+      - name: Smoke test
+        run: |
+          ./asmshare &
+          server_pid=$!
+          sleep 1
+          curl -sf http://127.0.0.1:8080/hello.txt | grep -q "Bonjour"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/nope)" = "404"
+          test "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/../Makefile)" = "403"
+          kill $server_pid
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: asmshare
+          path: asmshare
