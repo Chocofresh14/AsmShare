@@ -9,6 +9,9 @@ extern client_fd
 
 global send_file
 global send_string
+global send_error_400
+global send_error_403
+global send_error_404
 
 section .data
 www_prefix      db "www"
@@ -23,6 +26,27 @@ header_end:
     db "Connection: close", 13, 10
     db 13, 10, 0
 
+response_400:
+    db "HTTP/1.0 400 Bad Request", 13, 10
+    db "Content-Type: text/plain", 13, 10
+    db "Connection: close", 13, 10
+    db 13, 10
+    db "400 Bad Request", 10, 0
+
+response_403:
+    db "HTTP/1.0 403 Forbidden", 13, 10
+    db "Content-Type: text/plain", 13, 10
+    db "Connection: close", 13, 10
+    db 13, 10
+    db "403 Forbidden", 10, 0
+
+response_404:
+    db "HTTP/1.0 404 Not Found", 13, 10
+    db "Content-Type: text/plain", 13, 10
+    db "Connection: close", 13, 10
+    db 13, 10
+    db "404 Not Found", 10, 0
+
 section .bss
 file_path_buffer    resb FILE_PATH_SIZE
 stat_buffer         resb STAT_BUFFER_SIZE
@@ -36,27 +60,31 @@ send_file:
     call build_file_path
     call open_file
     test rax, rax
-    js send_file_done
+    js send_file_not_found
     mov [file_fd], rax
     call get_file_info
     test rax, rax
-    jnz send_file_close
+    jnz send_file_other
     call get_file_type
     cmp eax, S_IFREG
     je send_file_regular
     cmp eax, S_IFDIR
     je send_file_directory
-    jmp send_file_close
+send_file_other:
+    call close_file
+send_file_not_found:
+    mov rax, 1
+    ret
 send_file_regular:
     call send_headers
     call send_body
-    jmp send_file_close
+    jmp send_file_found
 send_file_directory:
     mov rdi, [file_fd]
     call send_listing
-send_file_close:
+send_file_found:
     call close_file
-send_file_done:
+    xor rax, rax
     ret
 
 build_file_path:
@@ -127,6 +155,21 @@ close_file:
     mov rax, SYS_CLOSE
     mov rdi, [file_fd]
     syscall
+    ret
+
+send_error_400:
+    mov rdi, response_400
+    call send_string
+    ret
+
+send_error_403:
+    mov rdi, response_403
+    call send_string
+    ret
+
+send_error_404:
+    mov rdi, response_404
+    call send_string
     ret
 
 send_string:

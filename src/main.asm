@@ -1,7 +1,12 @@
 %include "include/syscalls.inc"
 
 extern parse_request
+extern has_parent_reference
 extern send_file
+extern send_error_400
+extern send_error_403
+extern send_error_404
+extern path_buffer
 
 global _start
 global client_fd
@@ -16,6 +21,12 @@ sockaddr:
     dq 0
 sockaddr_len equ $ - sockaddr
 
+sigaction_ignore:
+    dq 1
+    dq 0
+    dq 0
+    dq 0
+
 section .bss
 server_fd       resq 1
 client_fd       resq 1
@@ -24,6 +35,7 @@ request_buffer  resb REQUEST_SIZE
 section .text
 
 _start:
+    call ignore_sigchld
     call create_server_socket
     call set_reuse_address
     call bind_server
@@ -31,15 +43,52 @@ _start:
 
 accept_loop:
     call accept_client
+    test rax, rax
+    js accept_loop
+    call fork_process
+    test rax, rax
+    je handle_client
+    call close_client
+    jmp accept_loop
+
+handle_client:
+    call close_server
     call read_request
+    call handle_request
+    call close_client
+    call exit_process
+
+handle_request:
     mov rdi, request_buffer
     call parse_request
     test rax, rax
-    jnz skip_answer
+    jnz handle_bad_request
+    mov rdi, path_buffer
+    call has_parent_reference
+    test rax, rax
+    jnz handle_forbidden
     call send_file
-skip_answer:
-    call close_client
-    jmp accept_loop
+    test rax, rax
+    jnz handle_not_found
+    ret
+handle_bad_request:
+    call send_error_400
+    ret
+handle_forbidden:
+    call send_error_403
+    ret
+handle_not_found:
+    call send_error_404
+    ret
+
+ignore_sigchld:
+    mov rax, SYS_RT_SIGACTION
+    mov rdi, SIGCHLD
+    mov rsi, sigaction_ignore
+    xor rdx, rdx
+    mov r10, SIGSET_SIZE
+    syscall
+    ret
 
 create_server_socket:
     mov rax, SYS_SOCKET
@@ -84,6 +133,11 @@ accept_client:
     mov [client_fd], rax
     ret
 
+fork_process:
+    mov rax, SYS_FORK
+    syscall
+    ret
+
 read_request:
     mov rax, SYS_READ
     mov rdi, [client_fd]
@@ -102,3 +156,14 @@ close_client:
     mov rdi, [client_fd]
     syscall
     ret
+
+close_server:
+    mov rax, SYS_CLOSE
+    mov rdi, [server_fd]
+    syscall
+    ret
+
+exit_process:
+    mov rax, SYS_EXIT
+    xor rdi, rdi
+    syscall
