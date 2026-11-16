@@ -25,16 +25,12 @@ jobs:
           mkdir -p www/docs
           echo "ci-hello" > www/hello.txt
           echo "ci-note" > www/docs/note.txt
-          ss -ltn | grep ':8080' || echo "port 8080 libre avant le lancement"
           ./asmshare &
           server_pid=$!
           sleep 1
-          kill -0 $server_pid && echo "serveur vivant" || echo "serveur MORT"
-          ss -ltn | grep ':8080' || echo "RIEN n'ecoute sur 8080"
           fail=0
           check() {
-            name="$1"; expected="$2"; got="$3"
-            if [ "$got" = "$expected" ]; then echo "OK   $name"; else echo "FAIL $name (attendu: $expected, obtenu: $got)"; fail=1; fi
+            if [ "$3" = "$2" ]; then echo "OK   $1"; else echo "FAIL $1 (attendu: $2, obtenu: $3)"; fail=1; fi
           }
           check "GET /hello.txt" "ci-hello" "$(curl -s http://127.0.0.1:8080/hello.txt)"
           check "GET /" "200" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)"
