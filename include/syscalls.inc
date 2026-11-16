@@ -14,18 +14,21 @@ SYS_FORK        equ 57
 SYS_EXIT        equ 60
 SYS_CHROOT      equ 161
 SYS_GETDENTS64  equ 217
-STDOUT		equ 1
+
+STDOUT          equ 1
 
 AF_INET         equ 2
 SOCK_STREAM     equ 1
 SOL_SOCKET      equ 1
 SO_REUSEADDR    equ 2
 
+SIGCHLD         equ 17
+SIGSET_SIZE     equ 8
+
 PORT_NETWORK    equ 0x901F
 BACKLOG         equ 16
 REQUEST_SIZE    equ 4096
 PATH_SIZE       equ 1024
-
 FILE_PATH_SIZE  equ 1040
 
 O_RDONLY        equ 0
