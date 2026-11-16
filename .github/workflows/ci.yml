@@ -22,14 +22,28 @@ jobs:
 
       - name: Smoke test
         run: |
+          mkdir -p www/docs
+          echo "ci-hello" > www/hello.txt
+          echo "ci-note" > www/docs/note.txt
+          ss -ltn | grep ':8080' || echo "port 8080 libre avant le lancement"
           ./asmshare &
           server_pid=$!
           sleep 1
-          curl -sf http://127.0.0.1:8080/hello.txt | grep -q "Bonjour"
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = "200"
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/nope)" = "404"
-          test "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/../Makefile)" = "403"
-          kill $server_pid
+          kill -0 $server_pid && echo "serveur vivant" || echo "serveur MORT"
+          ss -ltn | grep ':8080' || echo "RIEN n'ecoute sur 8080"
+          fail=0
+          check() {
+            name="$1"; expected="$2"; got="$3"
+            if [ "$got" = "$expected" ]; then echo "OK   $name"; else echo "FAIL $name (attendu: $expected, obtenu: $got)"; fail=1; fi
+          }
+          check "GET /hello.txt" "ci-hello" "$(curl -s http://127.0.0.1:8080/hello.txt)"
+          check "GET /" "200" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)"
+          check "GET /docs/" "200" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/docs/)"
+          check "GET /docs/note.txt" "ci-note" "$(curl -s http://127.0.0.1:8080/docs/note.txt)"
+          check "GET /nope" "404" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/nope)"
+          check "GET /../Makefile" "403" "$(curl -s --path-as-is -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/../Makefile)"
+          kill $server_pid || true
+          exit $fail
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
