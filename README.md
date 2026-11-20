@@ -21,7 +21,7 @@ This is a **learning project**: the code is deliberately simple (no SIMD, no opt
 ## Quick install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Chocofresh14/AsmShare/refs/heads/develop/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Chocofresh14/AsmShare/refs/heads/release/v1.0.0/install.sh | bash
 ```
 
 The script:
