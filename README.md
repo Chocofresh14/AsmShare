@@ -37,7 +37,7 @@ Notes:
 - The cloned `AsmShare/` folder stays in the directory where you ran the command. You can delete it once the installation is done.
 - To be safe, read the script before running it:
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/Chocofresh14/AsmShare/refs/heads/develop/install.sh -o install.sh
+  curl -fsSL https://raw.githubusercontent.com/Chocofresh14/AsmShare/refs/heads/release/v1.0.0/install.sh -o install.sh
   less install.sh
   bash install.sh
   ```
